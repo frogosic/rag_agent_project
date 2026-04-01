@@ -1,0 +1,33 @@
+QA Policy Document - Software Quality Assurance Guidelines
+
+1. TEST PLANNING
+All features must have a test plan created before development begins.
+Test plans must cover functional, regression, and edge case scenarios.
+Test plans are reviewed and signed off by the QA lead before execution.
+
+2. TEST TYPES
+Unit tests are the responsibility of the development team.
+Integration tests verify that components work together as expected.
+End-to-end tests simulate real user workflows and are owned by QA.
+Regression tests must be run before every production release.
+
+3. BUG REPORTING
+All bugs must be logged in the issue tracker with steps to reproduce.
+Bugs are classified by severity: critical, major, minor, and trivial.
+Critical bugs block the release and must be resolved within 24 hours.
+Major bugs must be resolved before the next sprint ends.
+
+4. DEFINITION OF DONE
+A feature is considered done when all tests pass and code coverage is above 80%.
+All critical and major bugs must be resolved before a release is approved.
+QA sign-off is required before any code is merged to the main branch.
+
+5. AUTOMATION
+All regression test cases must be automated within one sprint of being written.
+Automated tests run on every pull request via CI/CD pipeline.
+Flaky tests must be investigated and fixed within two sprints.
+
+6. RELEASE PROCESS
+A release candidate must pass full regression before going to staging.
+Staging environment must mirror production as closely as possible.
+QA approval is mandatory before any production deployment.
