@@ -53,6 +53,7 @@ class AIModel:
             template=(
                 "{system_prompt}\n\n"
                 "Use the following context to answer the user's question:\n{context}\n\n"
+                "{history}"
                 "You must respond ONLY with valid JSON. No explanation, no markdown, no code blocks.\n"
                 "{format_prompt}\n"
                 "User: {user_prompt}"
@@ -60,24 +61,36 @@ class AIModel:
             input_variables=[
                 "system_prompt",
                 "context",
+                "history",
                 "format_prompt",
                 "user_prompt",
             ],
         )
         self.chain = self.template | self.llm | self.parser
 
-    def get_response(self, system_prompt: str, user_prompt: str) -> dict:
+    def get_response(self, system_prompt: str, user_prompt: str, history: list) -> dict:
         """Generates a response from the AI model based on the provided prompts."""
         context_docs = self.retriever.invoke(user_prompt)
         context = "\n\n".join(doc.page_content for doc in context_docs)
+
+        history_text = ""
+        if history:
+            history_text = "Conversation so far:\n"
+            history_text += "\n".join(
+                f"User: {h['user']}\nAssistant: {h['assistant']}" for h in history
+            )
+            history_text += "\n\n"
 
         result = self.chain.invoke(
             {
                 "system_prompt": system_prompt,
                 "user_prompt": user_prompt,
                 "context": context,
+                "history": history_text,
                 "format_prompt": self.parser.get_format_instructions(),
             }
         )
+
+        history.append({"user": user_prompt, "assistant": result.get("response", "")})
         logger.info("Raw LLM output: %s", result)
         return result
