@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-ai = AIModel(policy_path="qa_policy.txt")
+ai = AIModel(
+    policy_path="qa_policy.txt",
+    collection_name="qa_policies",
+    doc_metadata={"domain": "qa", "version": "2024-Q1"},
+)
 
 SYSTEM_PROMPT = (
     "You are a QA assistant helping engineers understand quality assurance policies. "
