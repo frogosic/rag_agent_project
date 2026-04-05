@@ -1,0 +1,74 @@
+qa:
+  - name: qa_policies
+    path: policies/qa_policy.txt
+    source_type: text
+    domain: qa
+    description: >
+      QA engineering policies, testing standards, quality assurance procedures,
+      coverage requirements, regression testing rules, bug severity definitions,
+      release criteria, and test environment guidelines.
+      Use for questions about QA processes, testing rules, quality metrics,
+      policy versions, and engineering standards.
+    metadata:
+      domain: qa
+      version: '2024-Q1'
+      type: policy
+    chunk_size: 512
+    chunk_overlap: 80
+    retrieval_context:
+      policy_areas:
+        - 'test coverage requirements and thresholds'
+        - 'bug severity and priority definitions'
+        - 'regression testing rules and triggers'
+        - 'release criteria and deployment gates'
+        - 'test environment setup and configuration'
+        - 'QA sign-off procedures'
+      version_hint: >
+        If the query mentions a time period, quarter, or year,
+        extract it as a version metadata filter matching the format 'YYYY-QN'.
+      query_hints: >
+        Prefer precise, regulation-like language in the semantic query.
+        Strip conversational filler and focus on the policy concept.
+        If the query covers multiple policy areas, decompose into one
+        sub-query per area.
+        If ambiguous between QA process and general engineering,
+        bias toward QA process interpretation.
+
+fiction:
+  - name: dark_matter
+    path: books/dark_matter.epub
+    source_type: epub
+    domain: fiction
+    description: >
+      Dark Matter by Blake Crouch — a sci-fi thriller about quantum physics,
+      parallel universes, and alternate timelines.
+      Follows Jason Dessen, a physicist who is kidnapped and wakes up in an
+      alternate reality. Themes include identity, reality, variables, iteration,
+      testing outcomes, state restoration, and navigating branching possibilities.
+      Use for questions about the plot, characters, themes, events, or passages
+      from the novel Dark Matter.
+    metadata:
+      domain: fiction
+      author: Blake Crouch
+      book: Dark Matter
+      genre: sci-fi thriller
+      type: novel
+    chunk_size: 1024
+    chunk_overlap: 150
+    retrieval_context:
+      key_entities:
+        - 'Jason Dessen: protagonist, physicist, kidnapped into alternate reality'
+        - "Daniela: Jason's wife"
+        - 'Amanda: scientist Jason meets in the box'
+        - "Ryan Holder: Jason's colleague and antagonist"
+        - 'The Box: device enabling travel between parallel universes'
+      overlapping_vocabulary: >
+        Uses sci-fi vocabulary overlapping with engineering: 'variables', 'testing',
+        'iteration', 'state', 'environment'. In this context these are
+        narrative and physics concepts, not technical ones.
+      query_hints: >
+        If query mentions a character, include their name in the semantic query.
+        If query asks about a theme, decompose into theme + character sub-queries.
+        If query references an event, add surrounding context to capture the
+        narrative arc, not just the moment.
+        Preserve emotional and narrative language — fiction retrieval is contextual.

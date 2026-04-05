@@ -1,12 +1,34 @@
+# LangChain ecosystem
 langchain==1.2.14
 langchain-openai==1.1.12
 langchain-core==1.2.23
 langchain-text-splitters==1.1.1
-openai==2.30.0
-python-dotenv==1.2.2
-pydantic==2.12.5
+langchain-chroma==1.1.0
 langchain-community==0.4.1
-faiss-cpu==1.13.2
-Flask==3.1.3
+
+# LangGraph — agent orchestration
+langgraph==1.1.6
+
+# LlamaIndex — retrieval infrastructure
+llama-index-core==0.14.20
+llama-index-vector-stores-chroma==0.5.5
+
+# FastAPI — replaces Flask
+fastapi==0.135.3
+uvicorn==0.43.0
+
+# OpenAI
+openai==2.30.0
+
+# Vector store
 chromadb==1.5.5
-sentence-transformers==5.3.0
+
+# Document loading
+ebooklib==0.20
+unstructured==0.22.16
+
+# Core
+pydantic==2.12.5
+python-dotenv==1.2.2
+pyyaml==6.0.3
+pypandoc==1.17
