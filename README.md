@@ -249,9 +249,6 @@ The `/evaluate` endpoint runs a suite of test queries across both domains includ
   }
 }
 ```
-
-To disable evaluation (it makes ~30 LLM calls), set `EVALUATION_ENABLED = False` in `config.py`.
-
 ---
 
 ## Stack
@@ -266,19 +263,4 @@ To disable evaluation (it makes ~30 LLM calls), set `EVALUATION_ENABLED = False`
 | EPUB loading | ebooklib + BeautifulSoup4 |
 | Config | python-dotenv, pyyaml |
 
----
 
-## What's next
-
-- LlamaIndex `SubQuestionQueryEngine` for automatic multi-part query decomposition
-- Metadata-aware reranking per domain
-- Additional fiction sources via `sources.yaml` (Recursion, Wool)
-- Streaming responses via `/chat/stream`
-- LangGraph persistence layer for cross-session memory
-
----
-
-## Author
-
-[Frane](https://github.com/franeqa) — QA Automation Engineer  
-Built as part of IBM's Agentic AI Coursera certificate and personal RAG research.
