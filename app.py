@@ -256,3 +256,46 @@ async def evaluate():
     except Exception as e:
         logger.error("Evaluation failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/debug/chat")
+async def debug_chat(request: ChatRequest):
+    """Returns full state including raw chunks — for debugging only."""
+    from langchain_core.messages import HumanMessage
+
+    history = _sessions.get(request.session_id, [])
+    initial_state: AgentState = {
+        "messages": [HumanMessage(content=request.message)],
+        "user_query": request.message,
+        "history": history,
+        "intent": "",
+        "intent_confidence": 0.0,
+        "metadata_hints": {},
+        "qa_chunks": [],
+        "fiction_chunks": [],
+        "merged_chunks": [],
+        "retrieval_scores": {},
+        "raw_response": "",
+        "cited_response": "",
+        "sources": [],
+        "domain_used": "",
+    }
+
+    final_state = await agent_graph.ainvoke(initial_state)  # type: ignore
+
+    return {
+        "intent": final_state.get("intent"),
+        "qa_chunks": [
+            {"content": c["content"][:200], "distance": c["distance"]}
+            for c in final_state.get("qa_chunks", [])
+        ],
+        "fiction_chunks": [
+            {"content": c["content"][:200], "distance": c["distance"]}
+            for c in final_state.get("fiction_chunks", [])
+        ],
+        "merged_chunks": [
+            {"content": c["content"][:200], "distance": c["distance"]}
+            for c in final_state.get("merged_chunks", [])
+        ],
+        "raw_response": final_state.get("raw_response"),
+    }

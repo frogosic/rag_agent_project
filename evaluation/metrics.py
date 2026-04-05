@@ -151,7 +151,7 @@ _relevance_prompt = ChatPromptTemplate.from_messages(
             "0.4 — chunks are tangentially related, partial usefulness\n"
             "0.1 — chunks are off-topic or irrelevant\n"
             "0.0 — no chunks retrieved\n\n"
-            f"{_relevance_parser.get_format_instructions()}",
+            "{format_instructions}",
         ),
         (
             "human",
@@ -193,7 +193,7 @@ _faithfulness_prompt = ChatPromptTemplate.from_messages(
             "0.0 — answer is completely hallucinated or context was empty\n\n"
             "Also set answered=true only if the question was substantively answered, "
             "not deflected with 'I don't know'.\n\n"
-            f"{_faithfulness_parser.get_format_instructions()}",
+            "{format_instructions}",
         ),
         (
             "human",
@@ -251,7 +251,7 @@ def evaluate_retrieval(
         relevance_score = relevance["score"]
         relevance_reasoning = relevance["reasoning"]
     except Exception as e:
-        logger.warning("Relevance scoring failed: %s", e)
+        logger.error("Relevance scoring failed: %s", e)
         relevance_score = 0.0
         relevance_reasoning = f"Scoring failed: {e}"
 
@@ -300,7 +300,7 @@ def evaluate_answer(
         faithfulness_reasoning = faithfulness["reasoning"]
         answered = faithfulness["answered"]
     except Exception as e:
-        logger.warning("Faithfulness scoring failed: %s", e)
+        logger.error("Faithfulness scoring failed: %s", e)
         faithfulness_score = 0.0
         faithfulness_reasoning = f"Scoring failed: {e}"
         answered = False

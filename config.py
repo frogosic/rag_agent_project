@@ -18,7 +18,7 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 # LLM generation params
 # ---------------------------------------------------------------------------
 TEMPERATURE = 0.3
-MAX_TOKENS = 1024
+MAX_TOKENS = 2048
 
 # ---------------------------------------------------------------------------
 # Retrieval params — per domain
@@ -28,7 +28,7 @@ MAX_TOKENS = 1024
 # strict similarity, small chunks, low k
 QA_CHUNK_SIZE = 512
 QA_CHUNK_OVERLAP = 80
-QA_SIMILARITY_THRESHOLD = 0.55
+QA_SIMILARITY_THRESHOLD = 0.70
 QA_TOP_K = 3
 
 # Fiction — narrative, contextual, interpretive

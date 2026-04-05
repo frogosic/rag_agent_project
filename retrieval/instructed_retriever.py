@@ -196,7 +196,7 @@ class InstructedRetriever(ABC):
         """
         try:
             # embed query explicitly using the same model used at index time
-            query_embedding = self.vector_store._embedding_function.embed_query(query)
+            query_embedding = self.vector_store._embedding_function.embed_query(query)  # type: ignore
 
             results = self.vector_store._collection.query(
                 query_embeddings=[query_embedding],  # ← pre-embedded, not query_texts
@@ -212,7 +212,7 @@ class InstructedRetriever(ABC):
                 metadata_filters,
                 e,
             )
-            query_embedding = self.vector_store._embedding_function.embed_query(query)
+            query_embedding = self.vector_store._embedding_function.embed_query(query)  # type: ignore
             results = self.vector_store._collection.query(
                 query_embeddings=[query_embedding],
                 n_results=self.top_k,
@@ -221,9 +221,9 @@ class InstructedRetriever(ABC):
 
         chunks = []
         for doc, dist, meta in zip(
-            results["documents"][0],
-            results["distances"][0],
-            results["metadatas"][0],
+            results["documents"][0],  # type: ignore
+            results["distances"][0],  # type: ignore
+            results["metadatas"][0],  # type: ignore
         ):
             if dist < self.similarity_threshold:
                 chunks.append(

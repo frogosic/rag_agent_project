@@ -31,3 +31,46 @@ Flaky tests must be investigated and fixed within two sprints.
 A release candidate must pass full regression before going to staging.
 Staging environment must mirror production as closely as possible.
 QA approval is mandatory before any production deployment.
+
+7. ENVIRONMENTS
+QA environments must mirror production configuration as closely as possible.
+Each environment has defined variables that must be documented and version-controlled.
+Environment failures must be logged and the environment restored within 4 hours.
+Environment state must be reset between test runs to ensure isolation.
+Any change to environment configuration requires QA review before deployment.
+Environment instability that causes test failures must be treated as a critical issue.
+
+8. ITERATION AND REGRESSION
+Each iteration of the software must pass regression testing before advancing to the next.
+Variables introduced in new features must be tested in isolation before integration.
+State management across test iterations must be explicitly validated.
+Iteration planning must include QA estimation for all test activities.
+Regression scope must be reviewed and updated at the start of each iteration.
+
+9. INCIDENT RESPONSE
+When a critical failure occurs in production, QA must be notified within 15 minutes.
+A post-mortem is required for all critical and major incidents.
+Incident timelines must be documented including detection, response, and resolution.
+QA is responsible for validating the fix before the incident is closed.
+Recurring incidents must trigger a review of the related test coverage.
+
+10. METRICS AND COVERAGE
+Test coverage must be measured per iteration and reported to the team.
+Coverage below 80% blocks the release regardless of other criteria.
+Metrics are reviewed in each sprint retrospective.
+Coverage gaps identified during incidents must be addressed in the following sprint.
+All coverage metrics must be tracked in the project dashboard and visible to stakeholders.
+
+11. STATE MANAGEMENT
+Test state must be explicitly defined before each test run begins.
+Any shared state between tests must be documented and isolated where possible.
+State corruption during a test run must be logged and treated as a test environment failure.
+Tests that depend on prior state must declare that dependency explicitly in the test plan.
+Restoring a known good state is the first step in any incident response procedure.
+
+12. VARIABLES AND CONFIGURATION
+All test variables must be defined in a central configuration file.
+Environment-specific variables must never be hardcoded in test scripts.
+Changes to configuration variables require a regression run against affected test suites.
+Variable drift between environments is considered a critical configuration defect.
+Configuration changes must be version-controlled and peer-reviewed before deployment.
