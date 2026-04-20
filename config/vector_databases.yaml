@@ -1,0 +1,48 @@
+vector_databases:
+  technical_db:
+    chroma_path: data/chroma/technical_db
+    collection_name: technical
+    embedding_model: all-MiniLM-L6-v2
+    description: >
+      Engineering documentation, API references, authentication flows,
+      deployment guides, configuration, error codes, infrastructure.
+      For: engineers, developers, architects, DevOps.
+    sparse_weight: 0.4
+    dense_weight: 0.6
+    access_control: internal
+    triggers:
+      user_roles: [engineer, developer, architect, devops]
+      interfaces: [dev_portal, internal_docs]
+      explicit_scope: technical
+
+  hr_db:
+    chroma_path: data/chroma/hr_db
+    collection_name: hr_docs
+    embedding_model: all-MiniLM-L6-v2
+    description: >
+      HR policies, employee benefits, parental leave, expense reimbursement,
+      remote work, onboarding, performance, employment terms.
+      For: all employees, HR managers, recruiters.
+    sparse_weight: 0.5
+    dense_weight: 0.5
+    access_control: internal
+    triggers:
+      user_roles: [employee, hr_manager, recruiter, manager]
+      interfaces: [hr_portal, employee_portal]
+      explicit_scope: hr_docs
+
+  support_db:
+    chroma_path: data/chroma/support_db
+    collection_name: support
+    embedding_model: all-MiniLM-L6-v2
+    description: >
+      Historical support tickets, incident reports, bug resolutions,
+      root cause analyses, known issues, deployment incidents.
+      For: engineers debugging issues, support agents, on-call engineers.
+    sparse_weight: 0.4
+    dense_weight: 0.6
+    access_control: internal
+    triggers:
+      user_roles: [engineer, support_agent, devops]
+      interfaces: [support_tool, dev_portal]
+      explicit_scope: support

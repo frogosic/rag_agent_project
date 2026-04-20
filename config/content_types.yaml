@@ -1,0 +1,43 @@
+content_types:
+  technical:
+    source_dir: data/raw/technical
+    formats: [md]
+    extraction:
+      method: markdown
+      preserve: [code_blocks]
+      strip: []
+    chunking:
+      strategy: header_based
+      max_tokens: 400
+      overlap: 0
+    metadata:
+      content_type: technical
+    database: technical_db
+
+  hr_docs:
+    source_dir: data/raw/hr_docs
+    formats: [txt]
+    extraction:
+      method: plaintext
+      strip: []
+    chunking:
+      strategy: paragraph
+      max_tokens: 300
+      overlap: 50
+    metadata:
+      content_type: hr_docs
+    database: hr_db
+
+  support:
+    source_dir: data/raw/support
+    formats: [txt]
+    extraction:
+      method: plaintext
+      strip: []
+    chunking:
+      strategy: single
+      max_tokens: 500
+      overlap: 0
+    metadata:
+      content_type: support
+    database: support_db
