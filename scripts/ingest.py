@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_chroma_collection(db_config: VectorDBConfig):
+    """Get or create a Chroma collection for the given DB config."""
     path = Path(db_config.chroma_path)
     path.mkdir(parents=True, exist_ok=True)
     client = chromadb.PersistentClient(path=str(path))
@@ -61,6 +62,7 @@ def build_and_save_bm25_index(db_name: str, chunks: list[Chunk]) -> None:
 
 
 def ingest_content_type(name: str, loader: ConfigLoader) -> tuple[int, list[Chunk]]:
+    """Ingests all documents of a given content type, returning the total chunk count and list of chunks."""
     ct: ContentTypeConfig = loader.get_content_type(name)
     db: VectorDBConfig = loader.get_db(ct.database)
 
@@ -103,6 +105,7 @@ def ingest_content_type(name: str, loader: ConfigLoader) -> tuple[int, list[Chun
 
 
 def main():
+    """Main entry point for the ingest script, which processes content types and builds BM25 indexes."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", help="content type to ingest (default: all)")
     parser.add_argument("--config", default="config")

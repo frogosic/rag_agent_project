@@ -1,8 +1,10 @@
 import hashlib
-import re
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
+from markdown_it import MarkdownIt
+from markdown_it.token import Token
 
 from pipeline.config_loader import ContentTypeConfig
 
@@ -20,25 +22,33 @@ class ExtractedDocument:
 
 class BaseExtractor(ABC):
     def __init__(self, config: ContentTypeConfig):
-        self.config = config
+        self.config: ContentTypeConfig = config
 
     @abstractmethod
     def extract(self, source_path: Path) -> ExtractedDocument:
+        """Extract text and metadata from the given source path."""
         pass
 
     def _make_id(self, source_path: Path) -> str:
-        h = hashlib.md5(str(source_path).encode()).hexdigest()[:10]
+        """Generate a unique ID for the document based on the source path."""
+        h: str = hashlib.md5(str(source_path).encode()).hexdigest()[:10]
         return f"{self.config.name}_{source_path.stem}_{h}"
 
     def _base_metadata(self, source_path: Path) -> dict:
-        meta = dict(self.config.metadata)
+        """Base metadata for all extractors, including filename and source path."""
+        meta: dict = dict(self.config.metadata)
         meta["filename"] = source_path.name
         meta["source_path"] = str(source_path)
         return meta
 
 
 class MarkdownExtractor(BaseExtractor):
+    def __init__(self, config: ContentTypeConfig):
+        super().__init__(config)
+        self._parser = MarkdownIt("commonmark")
+
     def extract(self, source_path: Path) -> ExtractedDocument:
+        """Read the file as markdown and convert to plaintext, with optional preservation of code blocks."""
         raw = source_path.read_text(encoding="utf-8")
         text = self._process(raw)
         return ExtractedDocument(
@@ -51,37 +61,71 @@ class MarkdownExtractor(BaseExtractor):
         )
 
     def _process(self, raw: str) -> str:
-        preserve = self.config.extraction.preserve
-        protected = {}
-        counter = 0
+        """Convert markdown to plaintext, with optional preservation of code blocks."""
+        preserve_code: bool = "code_blocks" in self.config.extraction.preserve
+        tokens: list[Token] = self._parser.parse(raw)
+        lines: list[str] = []
 
-        if "code_blocks" in preserve:
+        for token in tokens:
+            if token.type == "heading_open":
+                level = int(token.tag[1])  # "h1" -> 1
+                lines.append("#" * level + " ")
+            elif token.type == "heading_close":
+                lines.append("\n")
+            elif token.type == "paragraph_open":
+                pass
+            elif token.type == "paragraph_close":
+                lines.append("\n\n")
+            elif token.type == "fence":
+                if preserve_code:
+                    fence = "```"
+                    info = token.info or ""
+                    lines.append(f"{fence}{info}\n{token.content}{fence}\n\n")
+            elif token.type == "code_block":
+                if preserve_code:
+                    lines.append(token.content + "\n\n")
+            elif token.type == "inline":
+                lines.append(self._render_inline(token, preserve_code))
+            elif token.type in (
+                "bullet_list_open",
+                "ordered_list_open",
+                "list_item_open",
+            ):
+                pass
+            elif token.type in ("bullet_list_close", "ordered_list_close"):
+                lines.append("\n")
+            elif token.type == "list_item_close":
+                lines.append("\n")
 
-            def protect(m):
-                nonlocal counter
-                key = f"__CODE_{counter}__"
-                protected[key] = m.group(0)
-                counter += 1
-                return key
+        return "".join(lines).strip()
 
-            raw = re.sub(r"```[\s\S]*?```", protect, raw)
-            raw = re.sub(r"`[^`\n]+`", protect, raw)
-
-        # strip markdown syntax, preserve text
-        text = re.sub(r"^#{1,6}\s+", "", raw, flags=re.MULTILINE)
-        text = re.sub(r"\*{1,2}([^*\n]+)\*{1,2}", r"\1", text)
-        text = re.sub(r"_{1,2}([^_\n]+)_{1,2}", r"\1", text)
-        text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-        text = re.sub(r"!\[[^\]]*\]\([^\)]+\)", "", text)
-
-        for key, original in protected.items():
-            text = text.replace(key, original)
-
-        return text.strip()
+    def _render_inline(self, token: Token, preserve_code: bool) -> str:
+        """Render inline tokens, with optional preservation of inline code."""
+        parts: list[str] = []
+        for child in token.children or []:
+            if child.type == "text":
+                parts.append(child.content)
+            elif child.type == "code_inline":
+                if preserve_code:
+                    parts.append(f"`{child.content}`")
+                else:
+                    parts.append(child.content)
+            elif child.type == "softbreak":
+                parts.append(" ")
+            elif child.type == "hardbreak":
+                parts.append("\n")
+            elif child.type == "link_open":
+                pass
+            elif child.type == "link_close":
+                pass
+            elif child.type == "image":
+                pass
+        return "".join(parts)
 
 
 class PlaintextExtractor(BaseExtractor):
     def extract(self, source_path: Path) -> ExtractedDocument:
+        """Read the entire file as plaintext."""
         text = source_path.read_text(encoding="utf-8").strip()
         return ExtractedDocument(
             id=self._make_id(source_path),
@@ -94,7 +138,8 @@ class PlaintextExtractor(BaseExtractor):
 
 
 def get_extractor(config: ContentTypeConfig) -> BaseExtractor:
-    method = config.extraction.method
+    """Factory method to get the appropriate extractor based on config."""
+    method: str = config.extraction.method
     if method == "markdown":
         return MarkdownExtractor(config)
     elif method == "plaintext":

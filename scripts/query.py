@@ -1,23 +1,13 @@
-"""
-Quick end-to-end test of the full pipeline.
-
-Usage:
-    python scripts/query.py
-    python scripts/query.py --role engineer --question "How do I refresh a JWT token?"
-"""
-
 import argparse
-import json
 import sys
 from pathlib import Path
+from pipeline.query_engine import QueryEngine
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 
 load_dotenv()
-
-from pipeline.query_engine import QueryEngine
 
 
 def main():
@@ -38,13 +28,13 @@ def main():
         user_role=args.role,
     )
 
-    print(f"=== routing ===")
+    print("=== routing ===")
     print(f"database:  {result['session']['database']}")
     print(f"tone:      {result['session']['tone']}")
     print(f"reasoning: {result['session']['reasoning']}")
     print()
 
-    print(f"=== answer ===")
+    print("=== answer ===")
     print(result["answer"])
     print()
 

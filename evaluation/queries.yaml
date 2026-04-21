@@ -1,0 +1,125 @@
+- id: tech-001
+  query: 'How do I refresh a JWT token?'
+  user_role: engineer
+  expected_db: technical_db
+  expected_chunk_ids:
+    - technical_auth_service_0a5d7e319c_1
+  match_mode: any
+  notes: 'Direct endpoint lookup. Expected chunk is Endpoints (contains /auth/refresh).'
+
+- id: tech-002
+  query: "What's the login endpoint request format?"
+  user_role: engineer
+  expected_db: technical_db
+  expected_chunk_ids:
+    - technical_auth_service_0a5d7e319c_1
+  match_mode: any
+  notes: 'Tests that request JSON inside the code block is retrievable. Same chunk as tech-001.'
+
+- id: tech-003
+  query: 'What does a 429 error mean in the auth service?'
+  user_role: engineer
+  expected_db: technical_db
+  expected_chunk_ids:
+    - technical_auth_service_0a5d7e319c_4
+  match_mode: any
+  notes: "Error code lookup. BM25 should hit '429' exactly. Validates fix 1 (code numbers preserved)."
+
+- id: tech-004
+  query: 'How long do access tokens last?'
+  user_role: developer
+  expected_db: technical_db
+  expected_chunk_ids:
+    - technical_auth_service_0a5d7e319c_2
+  match_mode: any
+  notes: "Paraphrase test — 'last' vs doc's 'expire after'. Stresses dense retrieval."
+
+- id: tech-005
+  query: 'What environment variables does authentication need?'
+  user_role: devops
+  expected_db: technical_db
+  expected_chunk_ids:
+    - technical_auth_service_0a5d7e319c_3
+  match_mode: any
+  notes: 'Tests devops role routing to technical_db, and AUTH_SECRET_KEY retrieval. Validates fix 1.'
+
+- id: tech-006
+  query: 'What is the authentication service?'
+  user_role: engineer
+  expected_db: technical_db
+  expected_chunk_ids:
+    - technical_auth_service_0a5d7e319c_0
+  match_mode: any
+  notes: 'High-level question. Expected chunk is Overview. If the deleted title chunk leaked through, this would catch it.'
+
+- id: tech-007
+  query: 'How do I log out a user?'
+  user_role: engineer
+  expected_db: technical_db
+  expected_chunk_ids:
+    - technical_auth_service_0a5d7e319c_1
+  match_mode: any
+  notes: 'Third endpoint in the Endpoints chunk. Tests that all three endpoints are in one chunk post-fix-2.'
+
+- id: hr-001
+  query: 'How many weeks of parental leave do I get?'
+  user_role: employee
+  expected_db: hr_db
+  expected_chunk_ids:
+    - hr_docs_parental_leave_a8ea4a1fc4_0
+  match_mode: any
+  notes: 'Canonical employee question.'
+
+- id: hr-002
+  query: "What's the notification requirement for parental leave?"
+  user_role: employee
+  expected_db: hr_db
+  expected_chunk_ids:
+    - hr_docs_parental_leave_a8ea4a1fc4_0
+  match_mode: any
+  notes: 'Specific subsection (8 weeks notice). Same chunk, different phrasing.'
+
+- id: hr-003
+  query: 'Am I eligible for parental leave as a new hire?'
+  user_role: employee
+  expected_db: hr_db
+  expected_chunk_ids:
+    - hr_docs_parental_leave_a8ea4a1fc4_0
+  match_mode: any
+  notes: "Eligibility question. Tests dense retrieval on 'new hire' vs doc's 'six months continuous employment'."
+
+- id: hr-004
+  query: 'What benefits do secondary caregivers get?'
+  user_role: hr_manager
+  expected_db: hr_db
+  expected_chunk_ids:
+    - hr_docs_parental_leave_a8ea4a1fc4_0
+  match_mode: any
+  notes: 'Tests hr_manager role routing.'
+
+- id: sup-001
+  query: 'Why were users unable to log in after password reset in February?'
+  user_role: support_agent
+  expected_db: support_db
+  expected_chunk_ids:
+    - support_ticket_1042_4a402c0062_0
+  match_mode: any
+  notes: 'Canonical support incident lookup.'
+
+- id: sup-002
+  query: 'What was the root cause of ticket SUP-1042?'
+  user_role: engineer
+  expected_db: support_db
+  expected_chunk_ids:
+    - support_ticket_1042_4a402c0062_0
+  match_mode: any
+  notes: 'Engineer debugging past incident. Tests that engineer role can route to support_db (overlaps with technical_db triggers — interesting routing test).'
+
+- id: sup-003
+  query: 'Did we have any auth-related incidents after a Helm deploy?'
+  user_role: devops
+  expected_db: support_db
+  expected_chunk_ids:
+    - support_ticket_1042_4a402c0062_0
+  match_mode: any
+  notes: 'Devops debugging. Tests devops routing to support vs technical (both are valid triggers).'
