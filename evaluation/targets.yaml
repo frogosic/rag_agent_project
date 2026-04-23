@@ -1,0 +1,58 @@
+targets:
+  auth.overview:
+    doc: auth_service.md
+    heading_keywords:
+      - overview
+    must_contain:
+      - authentication service
+      - JWT
+
+  auth.endpoints:
+    doc: auth_service.md
+    heading_keywords:
+      - endpoints
+    must_contain:
+      - /auth/login
+      - /auth/refresh
+      - /auth/logout
+
+  auth.tokens:
+    doc: auth_service.md
+    heading_keywords:
+      - token structure
+    must_contain:
+      - access tokens
+      - refresh tokens
+      - 1 hour
+      - 30 days
+
+  auth.config:
+    doc: auth_service.md
+    heading_keywords:
+      - configuration
+    must_contain:
+      - AUTH_SECRET_KEY
+      - AUTH_TOKEN_EXPIRY
+
+  auth.errors:
+    doc: auth_service.md
+    heading_keywords:
+      - error codes
+    must_contain:
+      - '401'
+      - '403'
+      - '429'
+
+  parental_leave.policy:
+    doc: parental_leave.txt
+    heading_keywords: []
+    must_contain:
+      - parental leave
+      - eligibility
+
+  support.ticket_1042:
+    doc: ticket_1042.txt
+    heading_keywords: []
+    must_contain:
+      - SUP-1042
+      - authentication

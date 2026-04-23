@@ -1,5 +1,0 @@
-tones:
-  technical: 'Be precise and concise. Use technical terminology. Include specifics like error codes, config keys, and commands.'
-  general: 'Use plain language. Explain any technical terms. Be friendly and clear.'
-  hr: 'Be professional and empathetic. Reference policy sections where relevant. Be clear about entitlements.'
-  support: 'Be direct. Lead with the resolution or root cause. Include relevant technical detail.'

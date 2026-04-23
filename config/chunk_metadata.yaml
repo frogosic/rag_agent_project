@@ -1,0 +1,34 @@
+required:
+  content_type:
+    type: string
+    values: [technical, hr_docs, support]
+    derivation: Top-level folder under data/raw/
+    purpose: Primary filter for scoped retrieval.
+
+  source:
+    type: string
+    derivation: Filename of origin document (basename).
+    purpose: Source attribution, doc-level filtering.
+
+  source_path:
+    type: string
+    derivation: Path from repo root.
+    purpose: Disambiguates when filenames collide.
+
+  chunk_index:
+    type: integer
+    derivation: Sequential position in source document.
+    purpose: Preserves document order.
+
+optional:
+  heading:
+    type: string
+    derivation: H2 heading (from header-based chunker).
+    presence: Present for technical chunks. Absent for hr_docs, support.
+    purpose: Source attribution granularity, heading-based filtering, eval semantic-hit check.
+
+  doc_format:
+    type: string
+    values: [md, txt]
+    derivation: Origin file extension.
+    purpose: Format-aware handling if ever needed.

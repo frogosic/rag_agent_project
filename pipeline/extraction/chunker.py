@@ -12,11 +12,11 @@ class Chunk:
     content_type: str
     text: str
     metadata: dict
-    database: str
     chunk_index: int
 
 
 def chunk_document(doc: ExtractedDocument, config: ChunkingConfig) -> list[Chunk]:
+    """Split the document into chunks according to the specified strategy in config."""
     if config.strategy == "single":
         return _single(doc)
     elif config.strategy == "paragraph":
@@ -27,50 +27,35 @@ def chunk_document(doc: ExtractedDocument, config: ChunkingConfig) -> list[Chunk
         raise ValueError(f"Unknown chunking strategy: {config.strategy}")
 
 
-def _make_chunk(doc: ExtractedDocument, text: str, index: int) -> Chunk:
+def _make_chunk(
+    doc: ExtractedDocument,
+    text: str,
+    index: int,
+    extra_metadata: dict | None = None,
+) -> Chunk:
+    """Create a Chunk object from the given document and text."""
     meta = dict(doc.metadata)
     meta["chunk_index"] = index
+    if extra_metadata:
+        meta.update(extra_metadata)
     return Chunk(
         id=f"{doc.id}_{index}",
         document_id=doc.id,
         content_type=doc.content_type,
         text=text,
         metadata=meta,
-        database=doc.database,
         chunk_index=index,
     )
 
 
 def _single(doc: ExtractedDocument) -> list[Chunk]:
+    """Return a single chunk containing the entire document."""
     return [_make_chunk(doc, doc.text.strip(), 0)]
 
 
 def _paragraph(doc: ExtractedDocument, config: ChunkingConfig) -> list[Chunk]:
-    raw_paragraphs = re.split(r"\n\s*\n", doc.text)
-    paragraphs = [p.strip() for p in raw_paragraphs if p.strip()]
-
-    chunks = []
-    buffer: list[str] = []
-    buffer_tokens = 0
-
-    for para in paragraphs:
-        tokens = len(para.split())
-        if buffer_tokens + tokens > config.max_tokens and buffer:
-            chunks.append(_make_chunk(doc, "\n\n".join(buffer), len(chunks)))
-            if config.overlap > 0:
-                carry = buffer[-1]
-                buffer = [carry]
-                buffer_tokens = len(carry.split())
-            else:
-                buffer = []
-                buffer_tokens = 0
-        buffer.append(para)
-        buffer_tokens += tokens
-
-    if buffer:
-        chunks.append(_make_chunk(doc, "\n\n".join(buffer), len(chunks)))
-
-    return chunks
+    """Chunk the document by paragraphs, where paragraphs are separated by blank lines."""
+    return _chunk_paragraphs(doc, doc.text, config)
 
 
 def _header_based(doc: ExtractedDocument, config: ChunkingConfig) -> list[Chunk]:
@@ -98,14 +83,32 @@ def _header_based(doc: ExtractedDocument, config: ChunkingConfig) -> list[Chunk]
 
     chunks = []
     for section in sections:
+        heading = _extract_heading(section)
+        extra = {"heading": heading} if heading else None
+
         tokens = len(section.split())
         if tokens > config.max_tokens:
-            sub = _paragraph_from_text(doc, section, config, len(chunks))
+            sub = _chunk_paragraphs(
+                doc,
+                section,
+                config,
+                index_offset=len(chunks),
+                extra_metadata=extra,
+                use_overlap=False,
+            )
             chunks.extend(sub)
         else:
-            chunks.append(_make_chunk(doc, section, len(chunks)))
+            chunks.append(_make_chunk(doc, section, len(chunks), extra))
 
     return chunks if chunks else _single(doc)
+
+
+def _extract_heading(section: str) -> str | None:
+    """Return the H2 heading text (without '## ' prefix) from the first line, or None."""
+    first_line = section.split("\n", 1)[0].strip()
+    if _is_h2(first_line):
+        return first_line.lstrip("#").strip()
+    return None
 
 
 def _flush_section(current: list[str], sections: list[str]) -> None:
@@ -137,27 +140,26 @@ def _is_h2(line: str) -> bool:
     stripped = line.lstrip()
     if not stripped.startswith("##"):
         return False
-    # must have at least one character after '##'
     if len(stripped) < 3:
         return False
-    # the character after '##' must be whitespace (not '##foo')
     if not stripped[2].isspace():
-        return False
-    # must be followed by whitespace (not '##foo')
-    if len(stripped) < 3 or not stripped[2].isspace():
         return False
     return True
 
 
-def _paragraph_from_text(
+def _chunk_paragraphs(
     doc: ExtractedDocument,
     text: str,
     config: ChunkingConfig,
-    index_offset: int,
+    index_offset: int = 0,
+    extra_metadata: dict | None = None,
+    use_overlap: bool = True,
 ) -> list[Chunk]:
+    """Pack paragraphs into chunks bounded by config.max_tokens."""
     raw_paragraphs = re.split(r"\n\s*\n", text)
     paragraphs = [p.strip() for p in raw_paragraphs if p.strip()]
-    chunks = []
+
+    chunks: list[Chunk] = []
     buffer: list[str] = []
     buffer_tokens = 0
 
@@ -165,14 +167,31 @@ def _paragraph_from_text(
         tokens = len(para.split())
         if buffer_tokens + tokens > config.max_tokens and buffer:
             chunks.append(
-                _make_chunk(doc, "\n\n".join(buffer), index_offset + len(chunks))
+                _make_chunk(
+                    doc,
+                    "\n\n".join(buffer),
+                    index_offset + len(chunks),
+                    extra_metadata,
+                )
             )
-            buffer = []
-            buffer_tokens = 0
+            if use_overlap and config.overlap > 0:
+                carry = buffer[-1]
+                buffer = [carry]
+                buffer_tokens = len(carry.split())
+            else:
+                buffer = []
+                buffer_tokens = 0
         buffer.append(para)
         buffer_tokens += tokens
 
     if buffer:
-        chunks.append(_make_chunk(doc, "\n\n".join(buffer), index_offset + len(chunks)))
+        chunks.append(
+            _make_chunk(
+                doc,
+                "\n\n".join(buffer),
+                index_offset + len(chunks),
+                extra_metadata,
+            )
+        )
 
     return chunks

@@ -15,7 +15,6 @@ class ExtractedDocument:
     content_type: str
     text: str
     metadata: dict
-    database: str
     source_path: str
     flags: list = field(default_factory=list)
 
@@ -35,10 +34,11 @@ class BaseExtractor(ABC):
         return f"{self.config.name}_{source_path.stem}_{h}"
 
     def _base_metadata(self, source_path: Path) -> dict:
-        """Base metadata for all extractors, including filename and source path."""
+        """Base metadata for all extractors. Conforms to the chunk metadata schema."""
         meta: dict = dict(self.config.metadata)
-        meta["filename"] = source_path.name
+        meta["source"] = source_path.name
         meta["source_path"] = str(source_path)
+        meta["doc_format"] = source_path.suffix.lstrip(".")
         return meta
 
 
@@ -56,7 +56,6 @@ class MarkdownExtractor(BaseExtractor):
             content_type=self.config.name,
             text=text,
             metadata=self._base_metadata(source_path),
-            database=self.config.database,
             source_path=str(source_path),
         )
 
@@ -132,7 +131,6 @@ class PlaintextExtractor(BaseExtractor):
             content_type=self.config.name,
             text=text,
             metadata=self._base_metadata(source_path),
-            database=self.config.database,
             source_path=str(source_path),
         )
 

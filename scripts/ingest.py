@@ -1,8 +1,14 @@
+"""
+Ingest script for processing documents into the vector DB and BM25 index.
+Usage:
+  python scripts/ingest.py --type <content_type_name> --config <config_path>
+If --type is not specified, all content types in the config will be ingested.
+"""
+
 import argparse
 import json
 import sys
 import logging
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -24,11 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_chroma_collection(db_config: VectorDBConfig):
-    """Get or create a Chroma collection for the given DB config."""
+    """Get or create the Chroma collection for the configured DB."""
     path = Path(db_config.chroma_path)
     path.mkdir(parents=True, exist_ok=True)
+
     client = chromadb.PersistentClient(path=str(path))
     ef = SentenceTransformerEmbeddingFunction(model_name=db_config.embedding_model)
+
     return client.get_or_create_collection(
         name=db_config.collection_name,
         embedding_function=ef,  # type: ignore[arg-type]
@@ -38,7 +46,7 @@ def get_chroma_collection(db_config: VectorDBConfig):
 
 def build_and_save_bm25_index(db_name: str, chunks: list[Chunk]) -> None:
     """
-    Builds a bm25s index from chunk texts and saves two files:
+    Builds a bm25s index over all chunks and saves:
       data/bm25/{db_name}/index        ← bm25s native format
       data/bm25/{db_name}/id_map.json  ← [chunk_id, ...] positional mapping
     """
@@ -61,15 +69,18 @@ def build_and_save_bm25_index(db_name: str, chunks: list[Chunk]) -> None:
     logger.info(f"id map: {len(ids)} entries → {id_map_path}")
 
 
-def ingest_content_type(name: str, loader: ConfigLoader) -> tuple[int, list[Chunk]]:
-    """Ingests all documents of a given content type, returning the total chunk count and list of chunks."""
+def ingest_content_type(
+    name: str,
+    loader: ConfigLoader,
+    collection: chromadb.Collection,
+) -> list[Chunk]:
+    """Ingests all documents of a given content type and returns the chunks produced."""
     ct: ContentTypeConfig = loader.get_content_type(name)
-    db: VectorDBConfig = loader.get_db(ct.database)
 
     source_dir = Path(ct.source_dir)
     if not source_dir.exists():
         logger.info(f"[skip] source dir not found: {source_dir}")
-        return 0, []
+        return []
 
     files = []
     for fmt in ct.formats:
@@ -77,10 +88,9 @@ def ingest_content_type(name: str, loader: ConfigLoader) -> tuple[int, list[Chun
 
     if not files:
         logger.info(f"[skip] no files found in {source_dir}")
-        return 0, []
+        return []
 
     extractor: BaseExtractor = get_extractor(ct)
-    collection: chromadb.Collection = get_chroma_collection(db)
     all_chunks: list[Chunk] = []
 
     for file_path in sorted(files):
@@ -98,14 +108,14 @@ def ingest_content_type(name: str, loader: ConfigLoader) -> tuple[int, list[Chun
             metadatas=[c.metadata for c in chunks],
         )
 
-        logger.info(f"chroma: {len(chunks)} chunk(s) → {ct.database}")
+        logger.info(f"chroma: {len(chunks)} chunk(s)")
         all_chunks.extend(chunks)
 
-    return len(all_chunks), all_chunks
+    return all_chunks
 
 
 def main():
-    """Main entry point for the ingest script, which processes content types and builds BM25 indexes."""
+    """Main entry point for the ingest script."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", help="content type to ingest (default: all)")
     parser.add_argument("--config", default="config")
@@ -118,25 +128,19 @@ def main():
 
     logger.info(f"ingesting: {types}\n")
 
-    chunks_per_db: dict[str, list[Chunk]] = defaultdict(list)
-    total = 0
+    db = loader.default_db()
+    collection = get_chroma_collection(db)
+
+    all_chunks: list[Chunk] = []
 
     for name in types:
         logger.info(f"[{name}]")
-        ct = loader.get_content_type(name)
-        count, chunks = ingest_content_type(name, loader)
-        chunks_per_db[ct.database].extend(chunks)
-        logger.info(f"total: {count} chunk(s)\n")
-        total += count
+        chunks = ingest_content_type(name, loader, collection)
+        logger.info(f"total: {len(chunks)} chunk(s)\n")
+        all_chunks.extend(chunks)
 
-    logger.info("building bm25s indexes...")
-    for db_name, chunks in chunks_per_db.items():
-        if chunks:
-            logger.info(f"\n[{db_name}]")
-            build_and_save_bm25_index(db_name, chunks)
+    logger.info("building bm25s index...")
+    if all_chunks:
+        build_and_save_bm25_index(db.name, all_chunks)
 
-    logger.info(f"\ndone — {total} chunk(s) ingested")
-
-
-if __name__ == "__main__":
-    main()
+    logger.info(f"\ndone — {len(all_chunks)} chunk(s) ingested")

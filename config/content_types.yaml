@@ -12,7 +12,6 @@ content_types:
       overlap: 0
     metadata:
       content_type: technical
-    database: technical_db
 
   hr_docs:
     source_dir: data/raw/hr_docs
@@ -26,7 +25,6 @@ content_types:
       overlap: 50
     metadata:
       content_type: hr_docs
-    database: hr_db
 
   support:
     source_dir: data/raw/support
@@ -40,4 +38,3 @@ content_types:
       overlap: 0
     metadata:
       content_type: support
-    database: support_db
