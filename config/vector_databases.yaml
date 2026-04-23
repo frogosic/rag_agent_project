@@ -1,6 +1,7 @@
 vector_databases:
   main:
     chroma_path: data/chroma/main
+    bm25_path: data/bm25
     collection_name: main
     embedding_model: all-MiniLM-L6-v2
     # Weights tune the RRF fusion bias between sparse/dense.

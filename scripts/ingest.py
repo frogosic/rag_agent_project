@@ -1,7 +1,9 @@
 """
-Ingest script for processing documents into the vector DB and BM25 index.
+Ingest script for processing documents into the vector DB and BM25 indexes.
+
 Usage:
   python scripts/ingest.py --type <content_type_name> --config <config_path>
+
 If --type is not specified, all content types in the config will be ingested.
 """
 
@@ -9,6 +11,7 @@ import argparse
 import json
 import sys
 import logging
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -33,10 +36,8 @@ def get_chroma_collection(db_config: VectorDBConfig):
     """Get or create the Chroma collection for the configured DB."""
     path = Path(db_config.chroma_path)
     path.mkdir(parents=True, exist_ok=True)
-
     client = chromadb.PersistentClient(path=str(path))
     ef = SentenceTransformerEmbeddingFunction(model_name=db_config.embedding_model)
-
     return client.get_or_create_collection(
         name=db_config.collection_name,
         embedding_function=ef,  # type: ignore[arg-type]
@@ -44,14 +45,19 @@ def get_chroma_collection(db_config: VectorDBConfig):
     )
 
 
-def build_and_save_bm25_index(db_name: str, chunks: list[Chunk]) -> None:
+def build_and_save_bm25_index(
+    bm25_base_path: str,
+    db_name: str,
+    content_type: str,
+    chunks: list[Chunk],
+) -> None:
     """
-    Builds a bm25s index over all chunks and saves:
-      data/bm25/{db_name}/index        ← bm25s native format
-      data/bm25/{db_name}/id_map.json  ← [chunk_id, ...] positional mapping
+    Builds a bm25s index for one content_type partition and saves:
+      {bm25_base_path}/{db_name}__{content_type}/index
+      {bm25_base_path}/{db_name}__{content_type}/id_map.json
     """
-    bm25_dir: Path = Path("data/bm25") / db_name
-    bm25_dir.mkdir(parents=True, exist_ok=True)
+    partition_dir: Path = Path(bm25_base_path) / f"{db_name}__{content_type}"
+    partition_dir.mkdir(parents=True, exist_ok=True)
 
     texts: list[str] = [c.text for c in chunks]
     ids: list[str] = [c.id for c in chunks]
@@ -60,13 +66,13 @@ def build_and_save_bm25_index(db_name: str, chunks: list[Chunk]) -> None:
 
     retriever = bm25s.BM25()
     retriever.index(corpus_tokens)
-    retriever.save(str(bm25_dir / "index"))
+    retriever.save(str(partition_dir / "index"))
 
-    id_map_path: Path = bm25_dir / "id_map.json"
+    id_map_path: Path = partition_dir / "id_map.json"
     id_map_path.write_text(json.dumps(ids, indent=2))
 
-    logger.info(f"bm25s index: {bm25_dir}/index")
-    logger.info(f"id map: {len(ids)} entries → {id_map_path}")
+    logger.info(f"bm25s index [{content_type}]: {partition_dir}/index")
+    logger.info(f"id map [{content_type}]: {len(ids)} entries → {id_map_path}")
 
 
 def ingest_content_type(
@@ -139,8 +145,24 @@ def main():
         logger.info(f"total: {len(chunks)} chunk(s)\n")
         all_chunks.extend(chunks)
 
-    logger.info("building bm25s index...")
-    if all_chunks:
-        build_and_save_bm25_index(db.name, all_chunks)
+    # Partition chunks by content_type for per-partition BM25 indexes.
+    by_type: dict[str, list[Chunk]] = defaultdict(list)
+    for c in all_chunks:
+        by_type[c.content_type].append(c)
+
+    logger.info("building bm25s partitions...")
+    for content_type, chunks in by_type.items():
+        if chunks:
+            logger.info(f"\n[{content_type}]")
+            build_and_save_bm25_index(
+                bm25_base_path=db.bm25_path,
+                db_name=db.name,
+                content_type=content_type,
+                chunks=chunks,
+            )
 
     logger.info(f"\ndone — {len(all_chunks)} chunk(s) ingested")
+
+
+if __name__ == "__main__":
+    main()

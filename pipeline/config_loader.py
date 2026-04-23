@@ -31,6 +31,7 @@ class ContentTypeConfig:
 class VectorDBConfig:
     name: str
     chroma_path: str
+    bm25_path: str
     collection_name: str
     embedding_model: str
     sparse_weight: float
@@ -63,6 +64,7 @@ class ConfigLoader:
             self._vector_dbs[name] = VectorDBConfig(
                 name=name,
                 chroma_path=data["chroma_path"],
+                bm25_path=data["bm25_path"],
                 collection_name=data["collection_name"],
                 embedding_model=data["embedding_model"],
                 sparse_weight=data["sparse_weight"],

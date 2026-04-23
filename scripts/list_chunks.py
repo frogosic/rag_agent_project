@@ -14,8 +14,15 @@ from pipeline.config_loader import ConfigLoader, VectorDBConfig
 logger = logging.getLogger(__name__)
 
 
-def list_chunks_for_db(db_config: VectorDBConfig, snippet_len: int) -> None:
-    """Lists chunks in the specified Chroma collection, showing ID, content type, source, and a text snippet."""
+def list_chunks_for_db(
+    db_config: VectorDBConfig,
+    snippet_len: int,
+    content_type: str | None = None,
+) -> None:
+    """Lists chunks in the Chroma collection, showing ID, content type, source, heading, and a text snippet.
+
+    If `content_type` is provided, only chunks with that content_type metadata are shown.
+    """
     path = Path(db_config.chroma_path)
     if not path.exists():
         logger.warning("%s: no data at %s (run ingest first)", db_config.name, path)
@@ -28,33 +35,47 @@ def list_chunks_for_db(db_config: VectorDBConfig, snippet_len: int) -> None:
         embedding_function=ef,  # type: ignore[arg-type]
     )
 
-    result = collection.get(include=["documents", "metadatas"])
+    where = {"content_type": content_type} if content_type else None
+    result = collection.get(where=where, include=["documents", "metadatas"])
     ids = result.get("ids", []) or []
     docs = result.get("documents", []) or []
     metas = result.get("metadatas", []) or []
 
     if not ids:
-        logger.warning("%s: collection exists but has no chunks", db_config.name)
+        if content_type:
+            logger.warning(
+                "%s: no chunks with content_type=%s", db_config.name, content_type
+            )
+        else:
+            logger.warning("%s: collection exists but has no chunks", db_config.name)
         return
 
-    logger.info("%s: %d chunk(s)", db_config.name, len(ids))
+    scope_label = f" [content_type={content_type}]" if content_type else ""
+    logger.info("%s: %d chunk(s)%s", db_config.name, len(ids), scope_label)
 
-    print(f"\n=== {db_config.name} ({len(ids)} chunk(s)) ===\n")
+    print(f"\n=== {db_config.name} ({len(ids)} chunk(s)){scope_label} ===\n")
     for chunk_id, doc, meta in zip(ids, docs, metas):
-        content_type = (meta or {}).get("content_type", "?")
-        source = (meta or {}).get("filename", (meta or {}).get("source_path", "?"))
+        meta = meta or {}
+        ct = meta.get("content_type", "?")
+        source = meta.get("source", meta.get("source_path", "?"))
+        heading = meta.get("heading")
         snippet = (doc or "").replace("\n", " ").strip()[:snippet_len]
         print(f"  id:      {chunk_id}")
-        print(f"  type:    {content_type}")
+        print(f"  type:    {ct}")
         print(f"  source:  {source}")
+        if heading:
+            print(f"  heading: {heading}")
         print(f"  text:    {snippet}...")
         print()
 
 
 def main():
-    """Main entry point for the list_chunks script, which lists chunks in Chroma collections based on the config."""
+    """Main entry point for the list_chunks script."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", help="list only this DB (default: all)")
+    parser.add_argument(
+        "--content-type",
+        help="List only chunks with this content_type (e.g. technical, hr_docs, support).",
+    )
     parser.add_argument("--config", default="config")
     parser.add_argument("--snippet-len", type=int, default=120)
     parser.add_argument(
@@ -71,18 +92,8 @@ def main():
     )
 
     loader = ConfigLoader(args.config)
-    all_dbs = loader.all_databases()
-
-    if args.db:
-        if args.db not in all_dbs:
-            logger.error("unknown DB: %s. known: %s", args.db, sorted(all_dbs.keys()))
-            sys.exit(1)
-        targets = [all_dbs[args.db]]
-    else:
-        targets = list(all_dbs.values())
-
-    for db_config in targets:
-        list_chunks_for_db(db_config, args.snippet_len)
+    db_config = loader.default_db()
+    list_chunks_for_db(db_config, args.snippet_len, content_type=args.content_type)
 
 
 if __name__ == "__main__":

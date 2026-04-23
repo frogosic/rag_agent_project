@@ -1,38 +1,34 @@
 import argparse
 import sys
 from pathlib import Path
-from pipeline.query_engine import QueryEngine
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
+
+from pipeline.query_engine import QueryEngine
 
 load_dotenv()
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--role", default="engineer")
     parser.add_argument("--question", default="How do I refresh a JWT token?")
+    parser.add_argument(
+        "--content-type",
+        help="Scope retrieval to a single content_type (e.g. technical, hr_docs, support).",
+    )
     args = parser.parse_args()
 
     engine = QueryEngine()
 
-    print(f"role:     {args.role}")
     print(f"question: {args.question}")
+    if args.content_type:
+        print(f"scope:    content_type={args.content_type}")
     print()
 
-    result = engine.query(
-        query=args.question,
-        user_id="test_user",
-        user_role=args.role,
-    )
-
-    print("=== routing ===")
-    print(f"database:  {result['session']['database']}")
-    print(f"tone:      {result['session']['tone']}")
-    print(f"reasoning: {result['session']['reasoning']}")
-    print()
+    where = {"content_type": args.content_type} if args.content_type else None
+    result = engine.query(query=args.question, where=where)
 
     print("=== answer ===")
     print(result["answer"])

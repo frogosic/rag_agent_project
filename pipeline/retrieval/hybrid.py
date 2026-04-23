@@ -66,7 +66,7 @@ class HybridRetriever:
         scores, because BM25 scores are not directly comparable across
         independently-built indexes (different IDF statistics).
         """
-        selected = self._select_bm25_indexes(where)
+        selected: list[BM25Partition] = self._select_bm25_indexes(where)
         if not selected:
             return []
 
