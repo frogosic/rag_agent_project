@@ -75,7 +75,7 @@ queries:
     expected_target: technical.auth.overview.selection
     expected_signals:
       - first-party
-      - server-to-server
+      - backend service
     anti_signals:
       - AUTH_OAUTH_CLIENT_REGISTRY_URL
       - environment variable

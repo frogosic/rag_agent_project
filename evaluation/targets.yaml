@@ -18,7 +18,7 @@ targets:
       - when to use which method
     must_contain:
       - first-party
-      - server-to-server
+      - backend service
 
   technical.auth.overview.failure_concepts:
     doc: auth_overview.md
