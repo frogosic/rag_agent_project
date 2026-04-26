@@ -1,173 +1,219 @@
-# Eval queries — rewritten for expanded technical corpus.
-#
-# Each query has:
-#   question: natural-language query as a user would ask it
-#   expected_target: the target ID the answer-bearing chunk should land in
-#   expected_signals: case-sensitive substrings that must appear in retrieved top-k
-#   anti_signals: substrings whose presence indicates retrieval drifted to an
-#                 adjacent-but-wrong doc (advisory only — they don't fail the query)
-#   min_signal_recall: minimum fraction of expected_signals that must be present
-#   require_semantic_hit: whether the expected_target must appear in top-k
-#
-# Anti-signals are drawn from the WRONG adjacent doc's distinctive vocabulary.
-# A query about config that returns api_reference content will surface anti-signals
-# from api_reference (e.g., "POST /auth/login"), letting us see drift even when
-# the eval technically passes.
-
 queries:
   # ============================================================================
   # CATEGORY 1 — Easy queries (sanity / regression detection)
-  # Phrasing maps unambiguously to one doc. Should be trivially passable.
-  # If these fail, retrieval is broken at a basic level.
   # ============================================================================
 
-  - question: 'What HTTP endpoint do I call to log in?'
+  - id: tech-easy-001
+    query: 'What HTTP endpoint do I call to log in?'
     expected_target: technical.auth.endpoint.login
-    expected_signals: ['POST /auth/login', 'access_token']
-    anti_signals: ['AUTH_JWT_SIGNING_KEY', 'denylist']
+    expected_signals:
+      - POST /auth/login
+      - access_token
+    anti_signals:
+      - AUTH_JWT_SIGNING_KEY
+      - denylist
     min_signal_recall: 1.0
     require_semantic_hit: true
+    notes: 'Sanity: phrasing maps unambiguously to the login endpoint doc.'
 
-  - question: 'What is the policy on parental leave?'
-    expected_target: hr.parental_leave.policy
-    expected_signals: ['parental leave']
+  - id: hr-easy-001
+    query: 'What is the policy on parental leave?'
+    expected_target: parental_leave.policy
+    expected_signals:
+      - parental leave
     anti_signals: []
     min_signal_recall: 1.0
     require_semantic_hit: true
+    notes: 'Sanity: cross-content_type baseline carried from phase 1.'
 
   # ============================================================================
   # CATEGORY 2 — Adjacent-discrimination queries
-  # Phrasing is ambiguous between two adjacent docs. The expected_target is the
-  # MORE correct landing zone; anti_signals flag drift to the other doc.
+  # Phrasing is ambiguous between two adjacent docs. anti_signals = drift indicator.
   # ============================================================================
 
-  # Configuration vs API reference: token lifetime
-  # Both docs mention token expiration. Config has the *policy* (15min/30day),
-  # api_reference has the *wire field* (expires_in: 900).
-  # User asking "how long does a token last" wants the policy, not the response field.
-  - question: 'How long is an access token valid for?'
+  - id: tech-adj-001
+    query: 'How long is an access token valid for?'
     expected_target: technical.auth.config.ttl_policy
-    expected_signals: ['15 minutes', 'AUTH_ACCESS_TOKEN_TTL']
-    anti_signals: ['expires_in', 'POST /auth/login']
+    expected_signals:
+      - 15 minutes
+      - AUTH_ACCESS_TOKEN_TTL
+    anti_signals:
+      - expires_in
+      - POST /auth/login
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Config policy vs api_reference response field. Drift to api_reference flags via anti_signals.'
 
-  # Session management vs API reference: refresh
-  # api_reference describes the /auth/token endpoint shape. session_management
-  # describes the refresh *flow* including rotation. A user asking how refresh
-  # works wants the flow.
-  - question: 'How does refreshing an expired token work?'
+  - id: tech-adj-002
+    query: 'How does refreshing an expired token work?'
     expected_target: technical.session.refresh_flow
-    expected_signals: ['rotated on every refresh', 'refresh_token_reused']
-    anti_signals: ['authorization_code', 'client_secret']
+    expected_signals:
+      - rotated on every refresh
+      - refresh_token_reused
+    anti_signals:
+      - authorization_code
+      - client_secret
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Session refresh flow vs OAuth /auth/token endpoint. Common confusion trap.'
 
-  # Overview vs API reference: failure handling
-  # Overview discusses *concepts* (re-authenticate, don't retry). api_reference
-  # lists *codes* (invalid_credentials, token_expired). User asking what to do
-  # when auth fails wants the conceptual guidance.
-  - question: 'What should my client do when authentication fails?'
+  - id: tech-adj-003
+    query: 'What should my client do when authentication fails?'
     expected_target: technical.auth.overview.failure_concepts
-    expected_signals: ['re-authenticate', 'rate limiting']
-    anti_signals: ['HTTP 401', 'Retry-After']
+    expected_signals:
+      - re-authenticate
+      - rate limiting
+    anti_signals:
+      - HTTP 401
+      - Retry-After
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Conceptual guidance vs error code table. Tests concept-vs-spec discrimination.'
 
-  # Configuration vs Overview: when to use what
-  # Overview has the *decision guidance*. Configuration has env vars including
-  # AUTH_OAUTH_CLIENT_REGISTRY_URL which mentions OAuth. A query about choosing
-  # an auth method should land in overview, not config.
-  - question: 'Should I use API keys or bearer tokens for my integration?'
+  - id: tech-adj-004
+    query: 'Should I use API keys or bearer tokens for my integration?'
     expected_target: technical.auth.overview.selection
-    expected_signals: ['first-party', 'server-to-server']
-    anti_signals: ['AUTH_OAUTH_CLIENT_REGISTRY_URL', 'environment variable']
+    expected_signals:
+      - first-party
+      - server-to-server
+    anti_signals:
+      - AUTH_OAUTH_CLIENT_REGISTRY_URL
+      - environment variable
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Decision guidance vs config env var. Should land in overview.'
 
   # ============================================================================
   # CATEGORY 3 — Specific-fact retrieval
-  # Tests whether retrieval finds a single specific fact buried in the doc.
-  # These are the queries where best-single-chunk recall matters most —
-  # the right chunk has the answer, neighboring chunks don't.
+  # Tests best-single-chunk recall on lexically distinctive facts.
   # ============================================================================
 
-  - question: 'What error code is returned when a token has been revoked?'
+  - id: tech-fact-001
+    query: 'What error code is returned when a token has been revoked?'
     expected_target: technical.auth.errors.codes
-    expected_signals: ['token_revoked', 'HTTP 401']
+    expected_signals:
+      - token_revoked
+      - HTTP 401
     anti_signals: []
     min_signal_recall: 1.0
     require_semantic_hit: true
+    notes: 'Specific error code lookup. BM25 should hit token_revoked directly.'
 
-  - question: 'What happens if a refresh token is used twice?'
+  - id: tech-fact-002
+    query: 'What happens if a refresh token is used twice?'
     expected_target: technical.session.refresh_flow
-    expected_signals: ['refresh_token_reused', 'revokes the entire session']
+    expected_signals:
+      - refresh_token_reused
+      - revokes the entire session
     anti_signals: []
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Specific behavior buried in refresh flow doc.'
 
-  - question: 'Which environment variable controls the JWT signing key?'
+  - id: tech-fact-003
+    query: 'Which environment variable controls the JWT signing key?'
     expected_target: technical.auth.config.env_vars
-    expected_signals: ['AUTH_JWT_SIGNING_KEY']
+    expected_signals:
+      - AUTH_JWT_SIGNING_KEY
     anti_signals: []
     min_signal_recall: 1.0
     require_semantic_hit: true
+    notes: 'Lexically distinctive env var name. BM25 hard match.'
 
-  - question: 'How are JWT signing keys rotated?'
+  - id: tech-fact-004
+    query: 'How are JWT signing keys rotated?'
     expected_target: technical.auth.config.rotation
-    expected_signals: ['quarterly', 'overlap window']
+    expected_signals:
+      - quarterly
+      - overlap window
     anti_signals: []
     min_signal_recall: 1.0
     require_semantic_hit: true
+    notes: 'Rotation policy specifics within config doc.'
 
   # ============================================================================
-  # CATEGORY 4 — Cross-doc synthesis queries
-  # The answer needs context from multiple docs. expected_target is the
-  # primary landing zone, but a good retrieval will surface chunks from
-  # related docs in top-k. These probe concentration_gap most strongly.
+  # CATEGORY 4 — Cross-doc synthesis
+  # Answer-bearing chunk in one doc, related context in another. Probes concentration_gap.
   # ============================================================================
 
-  # Primary answer in session_management (revocation mechanism), but
-  # configuration gives the TTL that bounds revocation latency.
-  # A retrieval that lands ONLY in session_management is incomplete.
-  - question: 'How quickly does token revocation take effect?'
+  - id: tech-synth-001
+    query: 'How quickly does token revocation take effect?'
     expected_target: technical.session.revocation
-    expected_signals: ['denylist', '15 minute']
+    expected_signals:
+      - denylist
+      - 15 minute
     anti_signals: []
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Revocation mechanism in session_management, TTL bound in config. Cross-doc.'
 
-  # Primary answer in configuration (per-env), but overview/api_reference
-  # context helps explain WHY staging differs.
-  - question: 'Why does staging have different rate limits than production?'
+  - id: tech-synth-002
+    query: 'Why does staging have different rate limits than production?'
     expected_target: technical.auth.config.per_environment
-    expected_signals: ['staging', 'load testing']
+    expected_signals:
+      - staging
+      - load testing
     anti_signals: []
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Per-env config primary; rate-limit context in overview/api_reference.'
 
   # ============================================================================
-  # CATEGORY 5 — Unchanged baseline queries (HR / Support)
-  # Carried forward to detect cross-content_type regression.
+  # CATEGORY 5 — Unchanged baseline (HR / Support)
+  # Carried forward verbatim from phase 1 to detect cross-content_type regression.
   # ============================================================================
 
-  - question: 'How much notice do I need to give before parental leave?'
-    expected_target: hr.parental_leave.policy
-    expected_signals: ['8 weeks', 'notify']
+  - id: hr-001
+    query: 'How many weeks of parental leave do I get?'
+    expected_target: parental_leave.policy
+    expected_signals:
+      - 16 weeks
+      - 4 weeks
     anti_signals: []
     min_signal_recall: 0.5
     require_semantic_hit: true
+    notes: 'Canonical employee question. Tests core policy retrieval.'
 
-  - question: 'What is the eligibility requirement for parental leave?'
-    expected_target: hr.parental_leave.policy
-    expected_signals: ['six months', 'continuous employment']
-    anti_signals: []
-    min_signal_recall: 0.5
-    require_semantic_hit: true
-
-  - question: 'What was the resolution for support ticket 1042?'
-    expected_target: support.ticket_1042
-    expected_signals: ['ticket 1042']
+  - id: hr-002
+    query: "What's the notification requirement for parental leave?"
+    expected_target: parental_leave.policy
+    expected_signals:
+      - notify
+      - 8 weeks
     anti_signals: []
     min_signal_recall: 1.0
     require_semantic_hit: true
+    notes: 'Specific subsection (8 weeks notice). Same target, different phrasing.'
+
+  - id: hr-003
+    query: 'Am I eligible for parental leave as a new hire?'
+    expected_target: parental_leave.policy
+    expected_signals:
+      - six months
+      - continuous employment
+    anti_signals: []
+    min_signal_recall: 1.0
+    require_semantic_hit: true
+    notes: "Dense retrieval on 'new hire' vs doc's 'six months continuous employment'."
+
+  - id: hr-004
+    query: 'What benefits do secondary caregivers get?'
+    expected_target: parental_leave.policy
+    expected_signals:
+      - 4 weeks
+      - 12 months
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Specific subsection. Tests caregiver-type discrimination.'
+
+  - id: sup-001
+    query: 'Why were users unable to log in after password reset in February?'
+    expected_target: support.ticket_1042
+    expected_signals:
+      - SUP-1042
+      - password reset
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Canonical support incident lookup.'
