@@ -36,7 +36,7 @@ def list_chunks_for_db(
     )
 
     where = {"content_type": content_type} if content_type else None
-    result = collection.get(where=where, include=["documents", "metadatas"])
+    result = collection.get(where=where, include=["documents", "metadatas"])  # type: ignore
     ids = result.get("ids", []) or []
     docs = result.get("documents", []) or []
     metas = result.get("metadatas", []) or []

@@ -1,125 +1,138 @@
-- id: tech-001
-  query: 'How do I refresh a JWT token?'
-  user_role: engineer
-  expected_db: technical_db
-  expected_chunk_ids:
-    - technical_auth_service_0a5d7e319c_1
-  match_mode: any
-  notes: 'Direct endpoint lookup. Expected chunk is Endpoints (contains /auth/refresh).'
+queries:
+  # Technical queries
 
-- id: tech-002
-  query: "What's the login endpoint request format?"
-  user_role: engineer
-  expected_db: technical_db
-  expected_chunk_ids:
-    - technical_auth_service_0a5d7e319c_1
-  match_mode: any
-  notes: 'Tests that request JSON inside the code block is retrievable. Same chunk as tech-001.'
+  - id: tech-001
+    query: 'How do I refresh a JWT token?'
+    expected_target: auth.endpoints
+    expected_signals:
+      - /auth/refresh
+      - refresh_token
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Direct endpoint lookup. Either signal alone is sufficient evidence.'
 
-- id: tech-003
-  query: 'What does a 429 error mean in the auth service?'
-  user_role: engineer
-  expected_db: technical_db
-  expected_chunk_ids:
-    - technical_auth_service_0a5d7e319c_4
-  match_mode: any
-  notes: "Error code lookup. BM25 should hit '429' exactly. Validates fix 1 (code numbers preserved)."
+  - id: tech-002
+    query: "What's the login endpoint request format?"
+    expected_target: auth.endpoints
+    expected_signals:
+      - /auth/login
+      - email
+      - password
+    anti_signals: []
+    min_signal_recall: 0.67
+    require_semantic_hit: true
+    notes: 'Tests that JSON-bearing code block content is retrievable post fix-1.'
 
-- id: tech-004
-  query: 'How long do access tokens last?'
-  user_role: developer
-  expected_db: technical_db
-  expected_chunk_ids:
-    - technical_auth_service_0a5d7e319c_2
-  match_mode: any
-  notes: "Paraphrase test — 'last' vs doc's 'expire after'. Stresses dense retrieval."
+  - id: tech-003
+    query: 'What does a 429 error mean in the auth service?'
+    expected_target: auth.errors
+    expected_signals:
+      - '429'
+      - rate
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: "Error code lookup. BM25 should hit '429' exactly. Validates fix-1 (numbers preserved)."
 
-- id: tech-005
-  query: 'What environment variables does authentication need?'
-  user_role: devops
-  expected_db: technical_db
-  expected_chunk_ids:
-    - technical_auth_service_0a5d7e319c_3
-  match_mode: any
-  notes: 'Tests devops role routing to technical_db, and AUTH_SECRET_KEY retrieval. Validates fix 1.'
+  - id: tech-004
+    query: 'How long do access tokens last?'
+    expected_target: auth.tokens
+    expected_signals:
+      - access tokens
+      - 1 hour
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: "Paraphrase test — 'last' vs doc's 'expire after'. Stresses dense retrieval."
 
-- id: tech-006
-  query: 'What is the authentication service?'
-  user_role: engineer
-  expected_db: technical_db
-  expected_chunk_ids:
-    - technical_auth_service_0a5d7e319c_0
-  match_mode: any
-  notes: 'High-level question. Expected chunk is Overview. If the deleted title chunk leaked through, this would catch it.'
+  - id: tech-005
+    query: 'What environment variables does authentication need?'
+    expected_target: auth.config
+    expected_signals:
+      - AUTH_SECRET_KEY
+      - AUTH_TOKEN_EXPIRY
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Config lookup. Validates fix-1 (env var names preserved across markdown stripping).'
 
-- id: tech-007
-  query: 'How do I log out a user?'
-  user_role: engineer
-  expected_db: technical_db
-  expected_chunk_ids:
-    - technical_auth_service_0a5d7e319c_1
-  match_mode: any
-  notes: 'Third endpoint in the Endpoints chunk. Tests that all three endpoints are in one chunk post-fix-2.'
+  - id: tech-006
+    query: 'What is the authentication service?'
+    expected_target: auth.overview
+    expected_signals:
+      - authentication service
+      - JWT
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: "High-level question. Validates that the deleted title-only chunk hasn't leaked back."
 
-- id: hr-001
-  query: 'How many weeks of parental leave do I get?'
-  user_role: employee
-  expected_db: hr_db
-  expected_chunk_ids:
-    - hr_docs_parental_leave_a8ea4a1fc4_0
-  match_mode: any
-  notes: 'Canonical employee question.'
+  - id: tech-007
+    query: 'How do I log out a user?'
+    expected_target: auth.endpoints
+    expected_signals:
+      - /auth/logout
+    anti_signals: []
+    min_signal_recall: 1.0
+    require_semantic_hit: true
+    notes: 'Validates that all three endpoints stay co-located in one chunk post fix-2.'
 
-- id: hr-002
-  query: "What's the notification requirement for parental leave?"
-  user_role: employee
-  expected_db: hr_db
-  expected_chunk_ids:
-    - hr_docs_parental_leave_a8ea4a1fc4_0
-  match_mode: any
-  notes: 'Specific subsection (8 weeks notice). Same chunk, different phrasing.'
+  # HR queries
 
-- id: hr-003
-  query: 'Am I eligible for parental leave as a new hire?'
-  user_role: employee
-  expected_db: hr_db
-  expected_chunk_ids:
-    - hr_docs_parental_leave_a8ea4a1fc4_0
-  match_mode: any
-  notes: "Eligibility question. Tests dense retrieval on 'new hire' vs doc's 'six months continuous employment'."
+  - id: hr-001
+    query: 'How many weeks of parental leave do I get?'
+    expected_target: parental_leave.policy
+    expected_signals:
+      - parental leave
+      - weeks
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Canonical employee question. Tests core policy retrieval.'
 
-- id: hr-004
-  query: 'What benefits do secondary caregivers get?'
-  user_role: hr_manager
-  expected_db: hr_db
-  expected_chunk_ids:
-    - hr_docs_parental_leave_a8ea4a1fc4_0
-  match_mode: any
-  notes: 'Tests hr_manager role routing.'
+  - id: hr-002
+    query: "What's the notification requirement for parental leave?"
+    expected_target: parental_leave.policy
+    expected_signals:
+      - notification
+      - weeks
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Specific subsection (8 weeks notice). Same target, different phrasing.'
 
-- id: sup-001
-  query: 'Why were users unable to log in after password reset in February?'
-  user_role: support_agent
-  expected_db: support_db
-  expected_chunk_ids:
-    - support_ticket_1042_4a402c0062_0
-  match_mode: any
-  notes: 'Canonical support incident lookup.'
+  - id: hr-003
+    query: 'Am I eligible for parental leave as a new hire?'
+    expected_target: parental_leave.policy
+    expected_signals:
+      - eligibility
+      - continuous employment
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: "Tests dense retrieval on 'new hire' vs doc's 'six months continuous employment'."
 
-- id: sup-002
-  query: 'What was the root cause of ticket SUP-1042?'
-  user_role: engineer
-  expected_db: support_db
-  expected_chunk_ids:
-    - support_ticket_1042_4a402c0062_0
-  match_mode: any
-  notes: 'Engineer debugging past incident. Tests that engineer role can route to support_db (overlaps with technical_db triggers — interesting routing test).'
+  - id: hr-004
+    query: 'What benefits do secondary caregivers get?'
+    expected_target: parental_leave.policy
+    expected_signals:
+      - secondary
+      - caregiver
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Specific subsection. Tests retrieval on caregiver-type discrimination.'
 
-- id: sup-003
-  query: 'Did we have any auth-related incidents after a Helm deploy?'
-  user_role: devops
-  expected_db: support_db
-  expected_chunk_ids:
-    - support_ticket_1042_4a402c0062_0
-  match_mode: any
-  notes: 'Devops debugging. Tests devops routing to support vs technical (both are valid triggers).'
+  # Support query
+
+  - id: sup-001
+    query: 'Why were users unable to log in after password reset in February?'
+    expected_target: support.ticket_1042
+    expected_signals:
+      - SUP-1042
+      - password reset
+    anti_signals: []
+    min_signal_recall: 0.5
+    require_semantic_hit: true
+    notes: 'Canonical support incident lookup.'
