@@ -104,6 +104,7 @@ def render_json(report: EvalReport) -> str:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--no-rerank", action="store_true")
     parser.add_argument(
         "--queries",
         default="evaluation/queries.yaml",
@@ -137,6 +138,7 @@ def main():
         targets_path=Path(args.targets),
         config_path=args.config,
         top_k=args.top_k,
+        rerank=not args.no_rerank,
     )
 
     if args.json:

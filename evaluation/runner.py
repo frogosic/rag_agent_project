@@ -13,6 +13,7 @@ from evaluation.metrics import (
 )
 from pipeline.config_loader import ConfigLoader
 from pipeline.retrieval.hybrid import HybridRetriever, RetrievalResult
+from pipeline.retrieval.reranker import Reranker
 
 
 @dataclass
@@ -105,9 +106,23 @@ def evaluate_query(
     target: Target,
     retriever: HybridRetriever,
     top_k: int,
+    reranker: Reranker | None = None,
 ) -> QueryVerdict:
-    """Run one query end-to-end: retrieve → measure → verdict."""
-    results: list[RetrievalResult] = retriever.retrieve(query.query, top_k=top_k)
+    """Run one query end-to-end: retrieve → (rerank) → measure → verdict.
+
+    When a reranker is provided, hybrid retrieval pulls a wider candidate
+    pool (top_k * 2) so the reranker has room to promote chunks that
+    hybrid ranked low. The reranker then selects top_k from that pool.
+    """
+    if reranker is not None:
+        candidates: list[RetrievalResult] = retriever.retrieve(
+            query.query, top_k=top_k * 2
+        )
+        results: list[RetrievalResult] = reranker.rerank(
+            query.query, candidates, top_k=top_k
+        )
+    else:
+        results = retriever.retrieve(query.query, top_k=top_k)
 
     sem_hit, sem_rank = semantic_hit(results, target)
     score = signal_recall(results, query.expected_signals)
@@ -171,18 +186,24 @@ def run_eval(
     targets_path: Path,
     config_path: str = "config",
     top_k: int = 10,
+    rerank: bool = True,
 ) -> EvalReport:
     """Run the full eval. Returns a structured report.
 
     Failures during query loading or target resolution raise; per-query
     retrieval/scoring errors do not — they produce a failed verdict so the
     rest of the eval still runs.
+
+    rerank: if True (default), a cross-encoder reranker is applied over
+    the hybrid retrieval candidate pool. Set False for the hybrid-only
+    baseline (used for A/B comparison).
     """
     targets = load_targets(targets_path)
     queries = load_queries(queries_path)
 
     loader = ConfigLoader(config_path)
     retriever = HybridRetriever(loader.default_db())
+    reranker = Reranker() if rerank else None
 
     verdicts: list[QueryVerdict] = []
     for query in queries:
@@ -192,7 +213,9 @@ def run_eval(
                 f"Query '{query.id}' references unknown target "
                 f"'{query.expected_target}'. Known targets: {sorted(targets.keys())}"
             )
-        verdict = evaluate_query(query, target, retriever, top_k=top_k)
+        verdict = evaluate_query(
+            query, target, retriever, top_k=top_k, reranker=reranker
+        )
         verdicts.append(verdict)
 
     return EvalReport(verdicts=verdicts, aggregate=aggregate(verdicts))

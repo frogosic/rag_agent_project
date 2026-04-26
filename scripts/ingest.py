@@ -31,6 +31,33 @@ from pipeline.extraction.extractors import (
 
 logger = logging.getLogger(__name__)
 
+BM25_HEADING_BOOST = 3
+
+
+def _bm25_text(chunk: Chunk) -> str:
+    """Build the text representation indexed by BM25 for a chunk.
+
+    Chunks with a heading get the heading prepended N times (BM25_HEADING_BOOST)
+    so heading tokens carry proportionally more weight in BM25's term-frequency
+    scoring. Chunks without a heading (e.g. plaintext sources, single-strategy
+    chunks) are passed through unchanged.
+
+    The original chunk.text is unaffected — Chroma still embeds the canonical
+    text, and the LLM still sees the canonical text in generation context.
+    """
+    heading = chunk.metadata.get("heading")
+
+    if not heading:
+        return chunk.text
+
+    heading = str(heading).strip()
+    if not heading:
+        return chunk.text
+
+    boosted_prefix = "\n".join([heading] * BM25_HEADING_BOOST)
+
+    return f"{boosted_prefix}\n{chunk.text}"
+
 
 def get_chroma_collection(db_config: VectorDBConfig):
     """Get or create the Chroma collection for the configured DB."""
@@ -59,7 +86,7 @@ def build_and_save_bm25_index(
     partition_dir: Path = Path(bm25_base_path) / f"{db_name}__{content_type}"
     partition_dir.mkdir(parents=True, exist_ok=True)
 
-    texts: list[str] = [c.text for c in chunks]
+    texts: list[str] = [_bm25_text(c) for c in chunks]
     ids: list[str] = [c.id for c in chunks]
 
     corpus_tokens = bm25s.tokenize(texts, stopwords="en")
