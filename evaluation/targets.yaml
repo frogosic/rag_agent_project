@@ -1,58 +1,125 @@
+# Targets define corpus regions by content predicate.
+# Matching is case-insensitive on doc + heading + must_contain.
+# A target is "hit" when at least one chunk in the retrieved top-k satisfies all predicates.
+
 targets:
-  auth.overview:
-    doc: auth_service.md
-    heading_keywords:
-      - overview
-    must_contain:
-      - authentication service
-      - JWT
+  # ============================================================
+  # TECHNICAL — auth_overview.md
+  # Conceptual content: methods, when-to-use, conceptual failure modes.
+  # ============================================================
+  technical.auth.overview.methods:
+    content_type: technical
+    source: auth_overview.md
+    heading: 'Supported authentication methods'
+    must_contain: ['bearer tokens', 'api keys', 'oauth']
 
-  auth.endpoints:
-    doc: auth_service.md
-    heading_keywords:
-      - endpoints
-    must_contain:
-      - /auth/login
-      - /auth/refresh
-      - /auth/logout
+  technical.auth.overview.selection:
+    content_type: technical
+    source: auth_overview.md
+    heading: 'When to use which method'
+    must_contain: ['first-party', 'server-to-server']
 
-  auth.tokens:
-    doc: auth_service.md
-    heading_keywords:
-      - token structure
-    must_contain:
-      - access tokens
-      - refresh tokens
-      - 1 hour
-      - 30 days
+  technical.auth.overview.failure_concepts:
+    content_type: technical
+    source: auth_overview.md
+    heading: 'Failure modes'
+    must_contain: ['re-authenticate', 'rate limiting']
 
-  auth.config:
-    doc: auth_service.md
-    heading_keywords:
-      - configuration
-    must_contain:
-      - AUTH_SECRET_KEY
-      - AUTH_TOKEN_EXPIRY
+  # ============================================================
+  # TECHNICAL — auth_api_reference.md
+  # Operational content: endpoints, shapes, error codes.
+  # ============================================================
+  technical.auth.endpoint.login:
+    content_type: technical
+    source: auth_api_reference.md
+    heading: 'POST /auth/login'
+    must_contain: ['access_token', 'refresh_token', 'expires_in']
 
-  auth.errors:
-    doc: auth_service.md
-    heading_keywords:
-      - error codes
-    must_contain:
-      - '401'
-      - '403'
-      - '429'
+  technical.auth.endpoint.token_oauth:
+    content_type: technical
+    source: auth_api_reference.md
+    heading: 'POST /auth/token'
+    must_contain: ['authorization_code', 'client_id']
 
-  parental_leave.policy:
-    doc: parental_leave.txt
-    heading_keywords: []
-    must_contain:
-      - parental leave
-      - eligibility
+  technical.auth.endpoint.logout:
+    content_type: technical
+    source: auth_api_reference.md
+    heading: 'POST /auth/logout'
+    must_contain: ['revoke', 'idempotent']
+
+  technical.auth.errors.codes:
+    content_type: technical
+    source: auth_api_reference.md
+    heading: 'Error codes'
+    must_contain: ['invalid_credentials', 'token_expired']
+
+  # ============================================================
+  # TECHNICAL — auth_configuration.md
+  # Deployment config: env vars, TTLs, rotation, per-env settings.
+  # ============================================================
+  technical.auth.config.env_vars:
+    content_type: technical
+    source: auth_configuration.md
+    heading: 'Environment variables'
+    must_contain: ['AUTH_JWT_SIGNING_KEY', 'AUTH_ACCESS_TOKEN_TTL']
+
+  technical.auth.config.ttl_policy:
+    content_type: technical
+    source: auth_configuration.md
+    heading: 'Token TTL policy'
+    must_contain: ['15 minutes', '30 days']
+
+  technical.auth.config.rotation:
+    content_type: technical
+    source: auth_configuration.md
+    heading: 'Key rotation'
+    must_contain: ['quarterly', 'overlap window']
+
+  technical.auth.config.per_environment:
+    content_type: technical
+    source: auth_configuration.md
+    heading: 'Per-environment configuration'
+    must_contain: ['staging', 'development']
+
+  # ============================================================
+  # TECHNICAL — session_management.md
+  # Session lifecycle: refresh, expiration, revocation.
+  # ============================================================
+  technical.session.refresh_flow:
+    content_type: technical
+    source: session_management.md
+    heading: 'Refresh flow'
+    must_contain: ['rotated on every refresh', 'refresh_token_reused']
+
+  technical.session.expiration:
+    content_type: technical
+    source: session_management.md
+    heading: 'Session expiration'
+    must_contain: ['inactivity timeout', 'refresh token expiration']
+
+  technical.session.revocation:
+    content_type: technical
+    source: session_management.md
+    heading: 'Token revocation'
+    must_contain: ['denylist', 'JTI']
+
+  technical.session.model:
+    content_type: technical
+    source: session_management.md
+    heading: 'Session model'
+    must_contain: ['concurrent sessions', 'session_id']
+
+  # ============================================================
+  # HR / SUPPORT — unchanged from phase 1 baseline
+  # ============================================================
+  hr.parental_leave.policy:
+    content_type: hr_docs
+    source: parental_leave.txt
+    heading: null
+    must_contain: ['parental leave']
 
   support.ticket_1042:
-    doc: ticket_1042.txt
-    heading_keywords: []
-    must_contain:
-      - SUP-1042
-      - authentication
+    content_type: support
+    source: ticket_1042.txt
+    heading: null
+    must_contain: ['ticket 1042']

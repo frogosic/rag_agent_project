@@ -1,0 +1,22 @@
+TICKET ID: SUP-1042
+DATE: 2024-02-14
+CATEGORY: authentication
+STATUS: resolved
+PRIORITY: high
+
+TITLE: Users unable to login after password reset
+
+DESCRIPTION:
+Multiple users reported being unable to log in after using the password reset flow. The login endpoint returns 401 even with correct new credentials.
+
+INVESTIGATION:
+The password reset flow was writing the new password hash to the read replica instead of the primary database due to a misconfigured connection string introduced in v1.8.2. Login reads from primary, so the new hash was never visible to the login check.
+
+ROOT CAUSE:
+Environment variable AUTH_DB_WRITE_URL was accidentally set to the read replica URL in the v1.8.2 Helm chart. The variable was renamed from DB_PRIMARY_URL in v1.8.0 but the Helm chart was not updated consistently.
+
+RESOLUTION:
+Rolled back Helm chart to v1.8.1 values. Issued hotfix in v1.8.3 with correct environment variable. Affected users were sent a new password reset email. Total affected users: 47.
+
+PREVENTION:
+Added integration test verifying password reset flow end to end. Added Helm chart CI linting to validate required environment variables are present.

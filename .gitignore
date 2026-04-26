@@ -12,4 +12,5 @@ __pycache__/
 *.bin
 /books/*.epub
 *.npy
-data/
+data/bm25
+data/chroma
